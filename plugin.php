@@ -1,5 +1,5 @@
 <?php return array(
- 'clonemeagain:notefirst', # notrans
+ 'id' => 'clonemeagain:notefirst', # notrans
  'version' => '0.1',
  'name' => 'Ticket View: Note Reply First',
  'author' => 'clonemeagain@gmail.com',
