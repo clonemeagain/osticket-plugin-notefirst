@@ -45,9 +45,9 @@ class NoteFirstPlugin extends Plugin
           $(document).on('ready pjax:success',function(){
                 // Set the default response to "Internal Note", unless there is a reply hash in the URL.
                 if(!location.hash){
-                    $('#note_tab').click();
+                    $('#post-note-tab').click(); // Upgrade to 1.10
                     // Note: The "action of clicking" causes the warning message to disappear.. we want it back?
-                    $("#msg_error, #msg_notice, #msg_warning").fadeIn();
+                    //$("#msg_error, #msg_notice, #msg_warning").fadeIn();
                 }
           });
 })(jQuery);
