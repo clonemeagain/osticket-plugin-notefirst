@@ -2,13 +2,15 @@
 
 Ensures that when you view a ticket, the "Post Internal Note" tab is highlighted where possible.
 
-To install, first, install https://github.com/clonemeagain/attachment_preview/tree/develop?files=1 as this relies on it.
+To install, first, install https://github.com/clonemeagain/attachment_preview as this relies on it.
+Then download/clone this into your /include/plugins directory as a directory, then visit /scp/plugins.php to enable it.
 
 # Can be made much simpler, if you are willing to change core a touch!
 
 * Edit include/class.osticket.php
 * Go right to the bottom to the "start" function, add at the beggining: ```global $ost;```
 * Effectively, apply https://github.com/osTicket/osTicket/pull/2907 
+* Now we don't need the attachments_preview api! :-)
 
 Then you can replace the entire bootstrap method of this plugin with:
 
