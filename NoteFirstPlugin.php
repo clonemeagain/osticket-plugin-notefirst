@@ -5,7 +5,7 @@ require_once ('config.php');
 /**
  * Ensure that "Post Internal Note" reply tab is activated on page load when viewing tickets.
  * For whomever you specify in the admin options.
- * 
+ *
  * The simplest way, is to simply emulate a "click" on the note tab.. at least we don't need translations!.
  */
 class NoteFirstPlugin extends Plugin
@@ -13,77 +13,94 @@ class NoteFirstPlugin extends Plugin
 
     var $config_class = 'NoteFirstPluginConfig';
 
-    function bootstrap()
-    {
-        if (! class_exists('AttachmentPreviewPlugin')) {
-            global $ost;
-            $ost->logError("Attachment Preview Plugin not enabled.", "To use plugin Note First, you need to enable the Attachment Preview Plugin");
-            return;
-        }
-        
-        // Use the AttachmentPreviewPlugin to check if we are viewing a ticket:
-        if (AttachmentPreviewPlugin::isTicketsView()) {
-            // We are, let's a script element in javascript to do the clicking on the tab for us:
-            $dom = new DOMDocument();
-            $script = $dom->createElement('script');
-            $script->setAttribute('type', 'text/javascript');
-            $script->setAttribute('name', 'Plugin: NoteFirst');
-            
-            // Write our script.. 
-            $script->nodeValue = <<<SCRIPT
-// Source: http://github.com/clonemeagain/osticket-plugin-notefirst
-(function($){
-          $(document).on('ready pjax:success',function(){
-                // Set the default response to "Internal Note", unless there is a reply hash in the URL.
-                if(!location.hash){
-                    $('#post-note-tab').click(); // Upgrade to 1.10
-                    // 1.9 or less:                    
-                    //$('#post_tab').click(); $("#msg_error, #msg_notice, #msg_warning").fadeIn(); // The "action of clicking" causes the warning message to disappear.. this keeps it around.
-                }
-          });
-})(jQuery);
-SCRIPT;
-            
-            // Build the structure to send to the Attachments plugin:
-            $signal_structure = array(
-                (object) [
-                    'locator' => 'tag',
-                    'expression' => 'body',
-                    'element' => $script
-                ]
-            );
-            
-            // Connect to the attachment_previews plugin and send the structure
-            Signal::send('attachments.wrapper', $this, $signal_structure);
-        }
-    }
-
     /**
      * This is the proposed bootstrap function, we'll not need attachment_preview to get this to work
      * if https://github.com/osTicket/osTicket/pull/2907 get's merged.
      */
     function new_bootstrap()
     {
-        /**
-         * Even newer method, assuming we can get a signal at the end of Bootstrap:
-         * Signal::connect ( 'bootstrap', function ($ost) {
-         * $ost->addExtraHeader ( '<script...' );
-         * } );
-         */
         global $ost;
-        $ost->addExtraHeader('
-	  <script name="Plugin: NoteFirst">
-	  // http://github.com/clonemeagain/osticket-plugin-notefirst
-	  (function($){
-	   $(document).on("ready pjax:success",function(){
-    	  // Set the default response to "Internal Note", unless there is a reply hash in the URL.
-    	  if(!location.hash){
-             //$("#note_tab").click(); // uncomment this for 1.9 or less and comment the next line.
-    	     $("#post-note-tab").click(); // Upgrade to 1.10 
-    	  }
-        });
-	  })(jQuery);
-	  </script>');
+        
+        // As the script only works when there is something to click on, we can safely inject it as a header in
+        // all renderable pages.
+        $ost->addExtraHeader($this->getScript());
+    }
+
+    /**
+     * Runs on every page load, keep small!
+     *
+     * {@inheritdoc}
+     * @see Plugin::bootstrap()
+     */
+    function bootstrap()
+    {
+        if (! class_exists('AttachmentPreviewPlugin')) {
+            error_log("Unable to use NoteFirstPlugin without this https://github.com/clonemeagain/attachment_preview ");
+        } elseif (AttachmentPreviewPlugin::isTicketsView()) {
+            $this->sendScript();
+        }
+    }
+
+    /**
+     * Uses the Attachments Preview plugin API to send the javascript as a DOMElement
+     * TODO: When the new_bootstrap method works, can remove this method, and remove the $raw filter on getScript.
+     */
+    private function sendScript()
+    {
+        // We are, let's build a javascript DOMElement to send:
+        $dom = new DOMDocument();
+        $script = $dom->createElement('script');
+        $script->setAttribute('type', 'text/javascript');
+        $script->setAttribute('name', 'Plugin: NoteFirst');
+        $script->setAttribute('plugin', 'https://github.com/clonemeagain/osticket-plugin-notefirst');
+        $script->nodeValue = $this->getScript(true);
+        
+        // Build the structure that the Attachment Preview plugin expects:
+        $signal_structure = array(
+            (object) [
+                'locator' => 'tag', // References an HTML tag, in this case <body>
+                'expression' => 'body', // Append to the end of the body (persists through pjax loads of the container)
+                'element' => $script // The DOMElement
+            ]
+        );
+        
+        // Connect to the attachment_previews API wrapper and send the structure:
+        Signal::send('attachments.wrapper', $this, $signal_structure);
+    }
+
+    /**
+     * Contains the actual JavaScript that does the work of the plugin
+     * Could be made external, however external dependencies should be avoided where possible.
+     *
+     * "reply hash" means: #reply etc in the URL.
+     *
+     * @return string
+     */
+    private function getScript($raw = FALSE)
+    {
+        $script = <<<SCRIPT
+
+(function($){
+    $(document).on("ready pjax:success",function(){
+      // Set the default response to "Internal Note", unless there is a reply hash in the URL.
+            if(!location.hash){
+                // Test for osTicket 1.10:
+                if($('#post-note-tab').length){
+                    $('#post-note-tab').click();
+                // 1.9 or less:
+                }else if($('#post_tab').length){
+                    $('#post_tab').click();
+                    // The "action of clicking" causes warning messages to disappear.. this keeps them around.
+                    $("#msg_error, #msg_notice, #msg_warning").fadeIn(); 
+                }
+            }
+    });
+})(jQuery);
+SCRIPT;
+        if ($raw)
+            return $script;
+        
+        return '<script name="Plugin: NoteFirst" plugin="https://github.com/clonemeagain/osticket-plugin-notefirst">' . $script . '</script>';
     }
 
     /**
