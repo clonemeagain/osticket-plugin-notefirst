@@ -57,11 +57,11 @@ class NoteFirstPlugin extends Plugin
         
         // Build the structure that the Attachment Preview plugin expects:
         $signal_structure = array(
-            (object) [
+            (object) array(
                 'locator' => 'tag', // References an HTML tag, in this case <body>
                 'expression' => 'body', // Append to the end of the body (persists through pjax loads of the container)
                 'element' => $script // The DOMElement
-            ]
+            )
         );
         
         // Connect to the attachment_previews API wrapper and send the structure:
@@ -88,8 +88,8 @@ class NoteFirstPlugin extends Plugin
                 if($('#post-note-tab').length){
                     $('#post-note-tab').click();
                 // 1.9 or less:
-                }else if($('#post_tab').length){
-                    $('#post_tab').click();
+                }else if($('#note_tab').length){
+                    $('#note_tab').click();
                     // The "action of clicking" causes warning messages to disappear.. this keeps them around.
                     $("#msg_error, #msg_notice, #msg_warning").fadeIn(); 
                 }
