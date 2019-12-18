@@ -79,23 +79,7 @@ class NoteFirstPlugin extends Plugin
     private function getScript($raw = FALSE)
     {
         $script = <<<SCRIPT
-
-(function($){
-    $(document).on("ready pjax:success",function(){
-      // Set the default response to "Internal Note", unless there is a reply hash in the URL.
-            if(!location.hash){
-                // Test for osTicket 1.10:
-                if($('#post-note-tab').length){
-                    $('#post-note-tab').click();
-                // 1.9 or less:
-                }else if($('#note_tab').length){
-                    $('#note_tab').click();
-                    // The "action of clicking" causes warning messages to disappear.. this keeps them around.
-                    $("#msg_error, #msg_notice, #msg_warning").fadeIn(); 
-                }
-            }
-    });
-})(jQuery);
+$(document).ready(function () { $('#post-note-tab').click(); });
 SCRIPT;
         if ($raw)
             return $script;
